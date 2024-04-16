@@ -48,8 +48,8 @@ st.sidebar.title('설정')
 st.sidebar.subheader('표시 옵션')
 show_sales_by_project = st.sidebar.checkbox('프로젝트별 매출 현황 표시', value=True)
 show_sales_proportion = st.sidebar.checkbox('프로젝트 별 매출 비중 표시', value=True)
-show_sales_details = st.sidebar.checkbox('프로젝트 별 매출 상세 정보 표시', value=True)
 show_sales_ranking = st.sidebar.checkbox('프로젝트 별 매출 순위 표시', value=True)
+show_sales_details = st.sidebar.checkbox('프로젝트 별 매출 상세 정보 표시', value=True)
 
 # 프로젝트별 매출 현황
 if show_sales_by_project:
