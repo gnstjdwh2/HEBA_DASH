@@ -118,15 +118,47 @@ with st.sidebar:
     profit_achievement_rate = round((total_profit / profit_target) * 100)
 
     # 도넛 차트 생성 함수
+    # def make_donut(input_response, input_text, input_color):
+    #     if input_color == 'blue':
+    #         chart_color = ['#29b5e8', '#155F7A']
+    #     if input_color == 'green':
+    #         chart_color = ['#27AE60', '#12783D']
+    #     if input_color == 'orange':
+    #         chart_color = ['#F39C12', '#875A12']
+    #     if input_color == 'red':
+    #         chart_color = ['#E74C3C', '#781F16']
+
+    #     source = pd.DataFrame({
+    #         "Topic": ['', input_text],
+    #         "% value": [100 - input_response, input_response]
+    #     })
+    #     source_bg = pd.DataFrame({
+    #         "Topic": ['', input_text],
+    #         "% value": [100, 0]
+    #     })
+
+    #     plot = alt.Chart(source).mark_arc(innerRadius=45, cornerRadius=25).encode(
+    #         theta="% value",
+    #         color=alt.Color("Topic:N", scale=alt.Scale(domain=[input_text, ''], range=chart_color), legend=None),
+    #     ).properties(width=110, height=140)
+
+    #     text = plot.mark_text(align='center', color="#29b5e8", font="Lato", fontSize=32, fontWeight=700,
+    #                            fontStyle="italic").encode(text=alt.value(f'{input_response} %'))
+
+    #     plot_bg = alt.Chart(source_bg).mark_arc(innerRadius=45, cornerRadius=20).encode(
+    #         theta="% value",
+    #         color=alt.Color("Topic:N", scale=alt.Scale(domain=[input_text, ''], range=chart_color), legend=None)
+    #     ).properties(width=110, height=140)
+
+    #     return plot_bg + plot + text
     def make_donut(input_response, input_text, input_color):
-        if input_color == 'blue':
-            chart_color = ['#29b5e8', '#155F7A']
-        if input_color == 'green':
-            chart_color = ['#27AE60', '#12783D']
-        if input_color == 'orange':
-            chart_color = ['#F39C12', '#875A12']
-        if input_color == 'red':
-            chart_color = ['#E74C3C', '#781F16']
+        color_map = {
+            'blue': ['#29b5e8', '#155F7A'],
+            'green': ['#27AE60', '#12783D'],
+            'orange': ['#F39C12', '#875A12'],
+            'red': ['#E74C3C', '#781F16']
+        }
+        chart_color = color_map.get(input_color, ['#29b5e8', '#155F7A'])  # 기본값은 'blue'
 
         source = pd.DataFrame({
             "Topic": ['', input_text],
@@ -142,8 +174,9 @@ with st.sidebar:
             color=alt.Color("Topic:N", scale=alt.Scale(domain=[input_text, ''], range=chart_color), legend=None),
         ).properties(width=110, height=140)
 
-        text = plot.mark_text(align='center', color="#29b5e8", font="Lato", fontSize=32, fontWeight=700,
-                               fontStyle="italic").encode(text=alt.value(f'{input_response} %'))
+        text = plot.mark_text(align='center', color=chart_color[0], font="Lato", fontSize=32, fontWeight=700, fontStyle="italic").encode(
+            text=alt.value(f'{input_response:.0f} %')
+        )
 
         plot_bg = alt.Chart(source_bg).mark_arc(innerRadius=45, cornerRadius=20).encode(
             theta="% value",
