@@ -8,18 +8,10 @@ import time
 
 # 데이터 파일 경로
 DATA_FILE = "sales_data.csv"
+
 # 데이터 불러오기
 data = pd.read_csv(DATA_FILE)
 data['Date'] = pd.to_datetime(data['Date'])  # 날짜 형식으로 변환
-
-alt.themes.enable("dark")
-
-# 페이지 설정
-st.set_page_config(
-    page_title='HEBA 대시보드',
-    layout='wide',
-    initial_sidebar_state='expanded'
-)
 
 # 다크 모드 색상 설정
 color_scheme = {
@@ -28,6 +20,23 @@ color_scheme = {
     'accent': '#1F77B4',
     'accent_negative': '#D62728'
 }
+
+# 도넛 차트 색상 매핑
+COLOR_MAP = {
+    'blue': ['#29b5e8', '#155F7A'],
+    'green': ['#27AE60', '#12783D'],
+    'orange': ['#F39C12', '#875A12'],
+    'red': ['#E74C3C', '#781F16']
+}
+
+# 페이지 설정
+st.set_page_config(
+    page_title='HEBA 대시보드',
+    layout='wide',
+    initial_sidebar_state='expanded'
+)
+
+alt.themes.enable("dark")
 
 # Streamlit 앱 디자인 수정
 st.markdown(f"""
@@ -56,7 +65,7 @@ due_date = date(2024, 8, 31)
 today = date.today()
 
 # 남은 일수 계산
-days_left = (due_date - today).days
+days_left = (due_date - today).days - 1 # 배포 시 하루 추가 되있어서 -1
 
 # CSS 스타일 정의
 css = """
@@ -118,39 +127,6 @@ with st.sidebar:
     profit_achievement_rate = round((total_profit / profit_target) * 100)
 
     # 도넛 차트 생성 함수
-    # def make_donut(input_response, input_text, input_color):
-    #     if input_color == 'blue':
-    #         chart_color = ['#29b5e8', '#155F7A']
-    #     if input_color == 'green':
-    #         chart_color = ['#27AE60', '#12783D']
-    #     if input_color == 'orange':
-    #         chart_color = ['#F39C12', '#875A12']
-    #     if input_color == 'red':
-    #         chart_color = ['#E74C3C', '#781F16']
-
-    #     source = pd.DataFrame({
-    #         "Topic": ['', input_text],
-    #         "% value": [100 - input_response, input_response]
-    #     })
-    #     source_bg = pd.DataFrame({
-    #         "Topic": ['', input_text],
-    #         "% value": [100, 0]
-    #     })
-
-    #     plot = alt.Chart(source).mark_arc(innerRadius=45, cornerRadius=25).encode(
-    #         theta="% value",
-    #         color=alt.Color("Topic:N", scale=alt.Scale(domain=[input_text, ''], range=chart_color), legend=None),
-    #     ).properties(width=110, height=140)
-
-    #     text = plot.mark_text(align='center', color="#29b5e8", font="Lato", fontSize=32, fontWeight=700,
-    #                            fontStyle="italic").encode(text=alt.value(f'{input_response} %'))
-
-    #     plot_bg = alt.Chart(source_bg).mark_arc(innerRadius=45, cornerRadius=20).encode(
-    #         theta="% value",
-    #         color=alt.Color("Topic:N", scale=alt.Scale(domain=[input_text, ''], range=chart_color), legend=None)
-    #     ).properties(width=110, height=140)
-
-    #     return plot_bg + plot + text
     def make_donut(input_response, input_text, input_color):
         color_map = {
             'blue': ['#29b5e8', '#155F7A'],
@@ -248,10 +224,11 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
             
             # CSV 파일에 저장
             data.to_csv(DATA_FILE, index=False)
+            current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
             
             # 가장 최근에 입력한 데이터 내용 출력
             st.success(f"입력 완료\n"
-                       f"\n날짜: {date}\n"
+                       f"\n날짜: {current_datetime}\n"
                        f"\n팀: {team}\n"
                        f"\n매출 생성자: {sales_person}\n"
                        f"\n매출 금액: {sales_amount}\n"
