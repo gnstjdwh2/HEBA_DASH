@@ -59,6 +59,22 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
+# 사이드바 넓이를 20%로 고정
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
+        width: 100%;
+    }
+    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
+        width: 100%;
+        margin-left: -20%;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # D-day 설정
 due_date = date(2024, 8, 31)
 today = date.today()
@@ -167,7 +183,7 @@ with st.sidebar:
 
         return plot_bg + plot + text
 
-    donut_chart_sales = make_donut(sales_achievement_rate, '매출 달성률', 'green')
+    donut_chart_sales = make_donut(sales_achievement_rate, '매출 달성률', 'blue')
     donut_chart_profit = make_donut(profit_achievement_rate, '수익 달성률', 'orange')
 
     achievement_col = st.columns(2)
@@ -175,7 +191,7 @@ with st.sidebar:
         st.info(f'매출 \n\n {total_sales:,.0f} ₩')
         st.altair_chart(donut_chart_sales)
     with achievement_col[1]:
-        st.info(f'수익 \n\n {total_profit:,.0f} ₩')
+        st.info(f'수익 ({(total_profit / total_sales):.2%})\n\n{total_profit:,.0f} ₩')
         st.altair_chart(donut_chart_profit)
 
 # 사이드바 생성
@@ -248,8 +264,17 @@ with col1:
     df_project_profit = data.groupby('Team')['Profit Amount'].sum().sort_values(ascending=False)
 
     # 팀별 매출 및 수익 데이터
-    # df_team_sales_profit = data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'}).reset_index()
     df_team_sales_profit = filtered_data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'}).reset_index()
+
+    # 매출 1등 팀과 수익 1등 팀 찾기
+    max_sales_team = df_team_sales_profit.loc[df_team_sales_profit['Sales Amount'].idxmax(), 'Team']
+    max_profit_team = df_team_sales_profit.loc[df_team_sales_profit['Profit Amount'].idxmax(), 'Team']
+
+    # 매출 막대 색상 설정
+    sales_colors = ['#29b5e8' if team == max_sales_team else '#155F7A' for team in df_team_sales_profit['Team']]
+
+    # 수익 막대 색상 설정
+    profit_colors = ['#F39C12' if team == max_profit_team else '#875A12' for team in df_team_sales_profit['Team']]
 
     # 혼합 막대 그래프 생성
     fig_sales_profit_by_project = go.Figure(data=[
@@ -257,14 +282,14 @@ with col1:
             name='매출',
             x=df_team_sales_profit['Team'],
             y=df_team_sales_profit['Sales Amount'],
-            marker_color='#1f77b4',
+            marker_color=sales_colors,
             opacity=0.7
         ),
         go.Bar(
             name='수익',
             x=df_team_sales_profit['Team'],
             y=df_team_sales_profit['Profit Amount'],
-            marker_color='#ff7f0e',
+            marker_color=profit_colors,
             opacity=0.7
         )
     ])
@@ -272,8 +297,8 @@ with col1:
     # 그래프 레이아웃 설정
     fig_sales_profit_by_project.update_layout(
         title='팀별 매출 및 수익',
-        xaxis_title='Team',
-        yaxis_title='Amount',
+        xaxis_title='',
+        yaxis_title='',
         barmode='group',
         legend=dict(x=0.8, y=1, orientation='v'),
         plot_bgcolor=color_scheme['background'],
@@ -284,38 +309,52 @@ with col1:
 
     st.plotly_chart(fig_sales_profit_by_project, use_container_width=True)
 
-    ### 월/주차별 그래프
-    # 데이터를 주차별로 그룹화
-    weekly_data = filtered_data.groupby(pd.Grouper(key='Date', freq='W-MON', label='left'))
+    team_data = data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'})
+    team_data['Profit Margin'] = team_data['Profit Amount'] / team_data['Sales Amount']
 
-    # 주차 레이블 생성 함수
-    def get_week_label(date):
-        month = date.month
-        week = (date.day - 1) // 7 + 1
-        return f"{month}월 {week}주차"
+    # 팀별 수익률 표시
+    fig = px.bar(team_data, x=team_data.index, y='Profit Margin', title='팀별 수익률', text_auto='.2%')
+    fig.update_layout(xaxis_title='', yaxis_title='', height=300,
+                    yaxis=dict(tickmode='array', tickvals=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                                ticktext=['0%', '20%', '40%', '60%', '80%', '100%']))
 
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=weekly_data.apply(lambda x: get_week_label(x['Date'].iloc[0])),
-        y=weekly_data['Sales Amount'].sum(),
-        name='Sales Amount',
-        marker_color='#1f77b4'  # 단일 색상 사용
-    ))
-
-    fig.update_layout(
-        scene=dict(
-            xaxis=dict(title='Month and Week'),
-            yaxis=dict(title='Sales'),
-            zaxis=dict(title='Project', type='category', categoryorder='array', categoryarray=filtered_data['Team'].unique())
-        ),
-        title='주차별 매출',
-        plot_bgcolor=color_scheme['background'],
-        paper_bgcolor=color_scheme['background'],
-        font=dict(color=color_scheme['text']),
-        height=300
-    )
+    # 차트 색상 설정
+    fig.update_traces(marker_color=['#27AE60' if pm >= 0.5 else '#12783D' for pm in team_data['Profit Margin']])
 
     st.plotly_chart(fig, use_container_width=True)
+
+### 월/주차별 그래프
+# 데이터를 주차별로 그룹화
+weekly_data = filtered_data.groupby(pd.Grouper(key='Date', freq='W-MON', label='left'))
+
+# 주차 레이블 생성 함수
+def get_week_label(date):
+    month = date.month
+    week = (date.day - 1) // 7 + 1
+    return f"{month}월 {week}주차"
+
+fig = go.Figure()
+fig.add_trace(go.Bar(
+    x=weekly_data.apply(lambda x: get_week_label(x['Date'].iloc[0])),
+    y=weekly_data['Sales Amount'].sum(),
+    name='Sales Amount',
+    marker_color='#1f77b4'  # 단일 색상 사용
+))
+
+fig.update_layout(
+    scene=dict(
+        xaxis=dict(title='Month and Week'),
+        yaxis=dict(title='Sales'),
+        zaxis=dict(title='Project', type='category', categoryorder='array', categoryarray=filtered_data['Team'].unique())
+    ),
+    title='주차별 매출',
+    plot_bgcolor=color_scheme['background'],
+    paper_bgcolor=color_scheme['background'],
+    font=dict(color=color_scheme['text']),
+    height=300
+)
+
+st.plotly_chart(fig, use_container_width=True)
 
 with col2:
     # 팀별 매출 합계 계산
