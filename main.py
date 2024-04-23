@@ -4,7 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import altair as alt
 from datetime import date, datetime
-import time
 
 # 데이터 파일 경로
 DATA_FILE = "sales_data.csv"
@@ -71,7 +70,7 @@ days_left = (due_date - today).days - 1 # 배포 시 하루 추가 되있어서 
 css = """
 <style>
 .st-info {
-    background-color: #2c3e50;
+    background-color: #0E1117;
     color: #fff;
     border: none;
     border-radius: 15px;
@@ -106,7 +105,14 @@ with st.sidebar:
         <strong>D-{days_left}</strong>
     </div>
     """, unsafe_allow_html=True)
+        
+# 전체 매출 및 목표
+total_sales = data['Sales Amount'].sum()
+total_target = 100000000  # 1억원
 
+
+# 달성률 사이드바
+with st.sidebar:
     # 데이터 처리
     df_project_sales = data.groupby('Team')['Sales Amount'].sum().sort_values(ascending=False)
     df_project_profit = data.groupby('Team')['Profit Amount'].sum().sort_values(ascending=False)
@@ -166,48 +172,41 @@ with st.sidebar:
 
     achievement_col = st.columns(2)
     with achievement_col[0]:
-        # st.info(f'{total_sales:,.0f} ₩', icon="📈")
         st.info(f'매출 \n\n {total_sales:,.0f} ₩')
-        # st.write('매출 달성률')
         st.altair_chart(donut_chart_sales)
     with achievement_col[1]:
-        # st.info(f'{total_profit:,.0f} ₩', icon="💰")
         st.info(f'수익 \n\n {total_profit:,.0f} ₩')
-        # st.write('수익 달성률')
         st.altair_chart(donut_chart_profit)
 
-
-# 전체 매출 및 목표
-total_sales = data['Sales Amount'].sum()
-total_target = 100000000  # 1억원
-
 # 사이드바 생성
-# st.sidebar.title("필터링 옵션")
 start_date = st.sidebar.date_input("시작 날짜", value=data['Date'].min())
 end_date = st.sidebar.date_input("종료 날짜", value=data['Date'].max())
+
+    # 필터링된 데이터
+filtered_data = data[(data['Date'] >= pd.to_datetime(start_date)) & (data['Date'] <= pd.to_datetime(end_date))]
 
 with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
     # 날짜 입력
     date = st.date_input("날짜", value=datetime.today())
-    
+
     # 팀 선택
     team = st.selectbox("팀", ["게임", "굿즈", "패스트 컨설팅", "잔여티켓 플랫폼", "Kindle 전자책"])
-    
+
     # 매출 생성자 입력
     sales_person = st.text_input("매출 생성자")
-    
+
     # 매출 금액 입력
     sales_amount_str = st.text_input("매출 금액", value="0")
-    
+
     # 수익 금액 입력
     profit_amount_str = st.text_input("수익 금액", value="0")
-    
+
     if st.button("입력"):
         # 입력된 문자열을 숫자로 변환
         try:
             sales_amount = float(sales_amount_str)
             profit_amount = float(profit_amount_str)
-            
+
             # 입력된 데이터를 데이터프레임에 추가
             new_data = pd.DataFrame({
                 "Date": [date],
@@ -217,30 +216,30 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
                 "Profit Amount": [profit_amount]
             })
             data = pd.concat([data, new_data], ignore_index=True)
-            
+
             # 날짜별로 정렬
             data["Date"] = pd.to_datetime(data["Date"])
             data = data.sort_values("Date")
-            
+
             # CSV 파일에 저장
             data.to_csv(DATA_FILE, index=False)
+
             current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
-            
+
             # 가장 최근에 입력한 데이터 내용 출력
             st.success(f"입력 완료\n"
-                       f"\n날짜: {current_datetime}\n"
-                       f"\n팀: {team}\n"
-                       f"\n매출 생성자: {sales_person}\n"
-                       f"\n매출 금액: {sales_amount}\n"
-                       f"\n수익 금액: {profit_amount}\n")
+                        f"\n날짜: {current_datetime}\n"
+                        f"\n팀: {team}\n"
+                        f"\n매출 생성자: {sales_person}\n"
+                        f"\n매출 금액: {sales_amount}\n"
+                        f"\n수익 금액: {profit_amount}\n")
+
+            st.rerun()
+
         except ValueError:
             st.error("매출 금액과 수익 금액은 숫자로 입력해주세요.")
 
-# 필터링된 데이터
-filtered_data = data[(data['Date'] >= pd.to_datetime(start_date)) & (data['Date'] <= pd.to_datetime(end_date))]
-
 ## section layout 조절
-# col1, col2, col3 = st.columns(3)
 col1, col2 = st.columns(2)
 
 with col1:
@@ -249,7 +248,8 @@ with col1:
     df_project_profit = data.groupby('Team')['Profit Amount'].sum().sort_values(ascending=False)
 
     # 팀별 매출 및 수익 데이터
-    df_team_sales_profit = data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'}).reset_index()
+    # df_team_sales_profit = data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'}).reset_index()
+    df_team_sales_profit = filtered_data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'}).reset_index()
 
     # 혼합 막대 그래프 생성
     fig_sales_profit_by_project = go.Figure(data=[
@@ -271,7 +271,7 @@ with col1:
 
     # 그래프 레이아웃 설정
     fig_sales_profit_by_project.update_layout(
-        title='📊 팀별 매출 및 수익',
+        title='팀별 매출 및 수익',
         xaxis_title='Team',
         yaxis_title='Amount',
         barmode='group',
@@ -308,7 +308,7 @@ with col1:
             yaxis=dict(title='Sales'),
             zaxis=dict(title='Project', type='category', categoryorder='array', categoryarray=filtered_data['Team'].unique())
         ),
-        title='📈 월/주차별 매출',
+        title='주차별 매출',
         plot_bgcolor=color_scheme['background'],
         paper_bgcolor=color_scheme['background'],
         font=dict(color=color_scheme['text']),
@@ -319,9 +319,9 @@ with col1:
 
 with col2:
     # 팀별 매출 합계 계산
-    team_sales = data.groupby('Team')['Sales Amount'].sum().reset_index()
+    team_sales = filtered_data.groupby('Team')['Sales Amount'].sum().reset_index()
     # 팀별 수익 합계 계산
-    team_profit = data.groupby('Team')['Profit Amount'].sum().reset_index()
+    team_profit = filtered_data.groupby('Team')['Profit Amount'].sum().reset_index()
 
     # 파이 차트 데이터 생성
     fig = go.Figure(data=[
@@ -330,7 +330,7 @@ with col2:
             labels=team_profit['Team'],
             values=team_profit['Profit Amount'],
             marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
-            hovertext=[f"수익: {profit:,.0f}" for team, profit in zip(team_profit['Team'], team_profit['Profit Amount'])],
+            # hovertext=[f"수익: {profit:,.0f}" for team, profit in zip(team_profit['Team'], team_profit['Profit Amount'])],
             textinfo='none',
             hole=0.4  # 수익 차트를 안쪽 원으로 설정
         ),
@@ -339,7 +339,7 @@ with col2:
             labels=team_sales['Team'],
             values=team_sales['Sales Amount'],
             marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
-            hovertext=[f"매출: {sales:,.0f}" for team, sales in zip(team_sales['Team'], team_sales['Sales Amount'])],
+            # hovertext=[f"매출: {sales:,.0f}" for team, sales in zip(team_sales['Team'], team_sales['Sales Amount'])],
             textinfo='none',
             hole=0.7  # 매출 차트를 바깥 원으로 설정
         )
@@ -348,7 +348,7 @@ with col2:
     # 차트 레이아웃 설정
     fig.update_layout(
         title='팀별 매출 및 수익 비중',
-        height=600,
+        height=585,
         font=dict(color=color_scheme['text']),
         plot_bgcolor=color_scheme['background'],
         paper_bgcolor=color_scheme['background'],
@@ -357,54 +357,6 @@ with col2:
 
     # 차트 렌더링
     st.plotly_chart(fig, use_container_width=True)
-
-# with col3:
-    # # 프로젝트 별 매출 상세 정보
-    # # if show_sales_details:
-    # # st.subheader('매출 상세 정보')
-    # data['Date'] = data['Date'].dt.strftime('%Y-%m-%d')  # 날짜 형식 변경
-    # data['Sales Amount'] = data['Sales Amount'].apply(lambda x: f"{x:,}")  # 숫자 형식 변경
-    
-    # # 스크롤 가능한 데이터프레임
-    # st.dataframe(data, height=300)
-
-    # # 샘플 그래프 2
-    # # st.subheader('샘플 그래프 2')
-    # sample_data2 = px.data.gapminder()
-    # fig_sample2 = px.scatter(sample_data2.query("year==2007"), x="gdpPercap", y="lifeExp", size="pop", color="continent", hover_name="country", log_x=True, size_max=60)
-    # fig_sample2.update_layout(
-    #     title='sample',
-    #     plot_bgcolor=color_scheme['background'],
-    #     paper_bgcolor=color_scheme['background'],
-    #     font=dict(color=color_scheme['text']),
-    #     height=300
-    # )
-    # st.plotly_chart(fig_sample2, use_container_width=True)
-
-    # # 팀별 수익 합계 계산
-    # team_profit = data.groupby('Team')['Profit Amount'].sum().reset_index()
-
-    # # 파이 차트 데이터 생성
-    # fig = go.Figure(data=[go.Pie(
-    #     labels=team_profit['Team'],
-    #     values=team_profit['Profit Amount'],
-    #     marker=dict(colors=px.colors.qualitative.Set2),  # 동일한 색상 팔레트 사용
-    #     textinfo='percent',
-    #     insidetextorientation='radial',
-    #     hole=0.4
-    # )])
-
-    # # 차트 레이아웃 설정
-    # fig.update_layout(
-    #     title='팀별 수익 비중',
-    #     legend=dict(orientation='h', xanchor='center', x=0.5, y=-0.1),
-    #     font=dict(color=color_scheme['text']),
-    #     plot_bgcolor=color_scheme['background'],
-    #     paper_bgcolor=color_scheme['background'],
-    #     height=400
-    # )
-
-    # st.plotly_chart(fig, use_container_width=True)
 
 with st.expander('팀 / 개인 성과 순위', expanded=False):
     df_project_sales_rank = df_project_sales.reset_index()
@@ -426,7 +378,7 @@ with st.expander('팀 / 개인 성과 순위', expanded=False):
             "Profit Rank": st.column_config.TextColumn("순위")
         })
 
-    st.info('Progress Bar 우측 값 = 누적액')
+    st.info('Progress Bar 우측 값은 누적액 입니다')
 
     # 개인별 매출 기여 순위 TOP 5
     individual_sales = data.groupby('Sales Person')['Sales Amount'].sum().reset_index().sort_values('Sales Amount', ascending=False).head(5)
