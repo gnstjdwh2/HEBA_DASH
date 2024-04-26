@@ -204,56 +204,62 @@ filtered_data = data[(data['Date'] >= pd.to_datetime(start_date)) & (data['Date'
 with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
     # 날짜 입력
     date = st.date_input("날짜", value=datetime.today())
-
+    
     # 팀 선택
     team = st.selectbox("팀", ["게임", "굿즈", "패스트 컨설팅", "잔여티켓 플랫폼", "Kindle 전자책"])
-
+    
     # 매출 생성자 입력
     sales_person = st.text_input("매출 생성자")
-
+    
     # 매출 금액 입력
     sales_amount_str = st.text_input("매출 금액", value="0")
-
+    
     # 수익 금액 입력
     profit_amount_str = st.text_input("수익 금액", value="0")
-
+    
     if st.button("입력"):
-        # 입력된 문자열을 숫자로 변환
-        try:
-            sales_amount = float(sales_amount_str)
-            profit_amount = float(profit_amount_str)
-
-            # 입력된 데이터를 데이터프레임에 추가
-            new_data = pd.DataFrame({
-                "Date": [date],
-                "Team": [team],
-                "Sales Person": [sales_person],
-                "Sales Amount": [sales_amount],
-                "Profit Amount": [profit_amount]
-            })
-            data = pd.concat([data, new_data], ignore_index=True)
-
-            # 날짜별로 정렬
-            data["Date"] = pd.to_datetime(data["Date"])
-            data = data.sort_values("Date")
-
-            # CSV 파일에 저장
-            data.to_csv(DATA_FILE, index=False)
-
-            current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
-
-            # 가장 최근에 입력한 데이터 내용 출력
-            st.success(f"입력 완료\n"
+        if sales_amount_str != "0":
+            # 입력된 문자열을 숫자로 변환
+            try:
+                sales_amount = float(sales_amount_str)
+                profit_amount = float(profit_amount_str)
+                
+                # 입력된 데이터를 데이터프레임에 추가
+                new_data = pd.DataFrame({
+                    "Date": [date],
+                    "Team": [team],
+                    "Sales Person": [sales_person],
+                    "Sales Amount": [sales_amount],
+                    "Profit Amount": [profit_amount]
+                })
+                data = pd.concat([data, new_data], ignore_index=True)
+                
+                # 날짜별로 정렬
+                data["Date"] = pd.to_datetime(data["Date"])
+                data = data.sort_values("Date")
+                
+                # CSV 파일에 저장
+                data.to_csv(DATA_FILE, index=False)
+                
+                current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
+                # 가장 최근에 입력한 데이터 내용 출력
+                st.success(f"입력 완료\n"
                         f"\n날짜: {current_datetime}\n"
                         f"\n팀: {team}\n"
                         f"\n매출 생성자: {sales_person}\n"
                         f"\n매출 금액: {sales_amount}\n"
                         f"\n수익 금액: {profit_amount}\n")
 
-            st.rerun()
-
-        except ValueError:
-            st.error("매출 금액과 수익 금액은 숫자로 입력해주세요.")
+                # 입력란 초기화
+                sales_person = ""
+                sales_amount_str = ""
+                profit_amount_str = ""
+                
+                st.experimental_rerun()
+            except ValueError:
+                st.error("매출 금액과 수익 금액은 숫자로 입력해주세요.")
+        else:
+            st.warning("매출액은 필수 입니다.")
 
 ## section layout 조절
 col1, col2 = st.columns(2)
@@ -309,7 +315,7 @@ with col1:
 
     st.plotly_chart(fig_sales_profit_by_project, use_container_width=True)
 
-    team_data = data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'})
+    team_data = filtered_data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'})
     team_data['Profit Margin'] = team_data['Profit Amount'] / team_data['Sales Amount']
 
     # 팀별 수익률 표시
@@ -323,37 +329,49 @@ with col1:
 
     st.plotly_chart(fig, use_container_width=True)
 
-### 월/주차별 그래프
-# 데이터를 주차별로 그룹화
-weekly_data = filtered_data.groupby(pd.Grouper(key='Date', freq='W-MON', label='left'))
+## 주차별 매출
+# 주차 계산을 위해 'Date' 열을 datetime으로 변환
+data = filtered_data.copy()  # filtered_data를 복사하여 사용
+data['Date'] = pd.to_datetime(data['Date'])
 
-# 주차 레이블 생성 함수
-def get_week_label(date):
-    month = date.month
-    week = (date.day - 1) // 7 + 1
-    return f"{month}월 {week}주차"
+# 월과 주차 열 추가
+data['Month'] = data['Date'].dt.month
+data['Week'] = data['Date'].dt.isocalendar().week
 
+# 월별 주차 계산
+data['MonthWeek'] = data.groupby(['Month'])['Week'].rank(method='dense').astype(int)
+data['MonthWeek'] = data['Month'].astype(str) + 'W' + data['MonthWeek'].astype(str)
+
+# 주차별 매출 총액 계산
+weekly_sales = data.groupby(['MonthWeek'])['Sales Amount'].sum().reset_index()
+
+# 주차별 팀별 매출 총액 계산
+team_weekly_sales = data.groupby(['MonthWeek', 'Team'])['Sales Amount'].sum().reset_index()
+
+# 그래프 생성
 fig = go.Figure()
-fig.add_trace(go.Bar(
-    x=weekly_data.apply(lambda x: get_week_label(x['Date'].iloc[0])),
-    y=weekly_data['Sales Amount'].sum(),
-    name='Sales Amount',
-    marker_color='#1f77b4'  # 단일 색상 사용
-))
 
+# 막대 그래프 추가
+fig.add_trace(go.Bar(x=weekly_sales['MonthWeek'], y=weekly_sales['Sales Amount'], name='전체 매출', marker_color='rgba(220, 220, 220, 0.8)'))
+
+# 팀별 선 그래프 추가
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+
+for i, team in enumerate(team_weekly_sales['Team'].unique()):
+    team_data = team_weekly_sales[team_weekly_sales['Team'] == team]
+    fig.add_trace(go.Scatter(x=team_data['MonthWeek'], y=team_data['Sales Amount'], name=team, mode='lines+markers',
+                             marker=dict(color=colors[i % len(colors)])))
+
+# 그래프 레이아웃 설정
 fig.update_layout(
-    scene=dict(
-        xaxis=dict(title='Month and Week'),
-        yaxis=dict(title='Sales'),
-        zaxis=dict(title='Project', type='category', categoryorder='array', categoryarray=filtered_data['Team'].unique())
-    ),
     title='주차별 매출',
-    plot_bgcolor=color_scheme['background'],
-    paper_bgcolor=color_scheme['background'],
-    font=dict(color=color_scheme['text']),
-    height=300
+    xaxis_title='',
+    yaxis_title='',
+    legend_title='',
+    hovermode='x unified'
 )
 
+# Streamlit에 그래프 표시
 st.plotly_chart(fig, use_container_width=True)
 
 with col2:
@@ -417,7 +435,7 @@ with st.expander('팀 / 개인 성과 순위', expanded=False):
             "Profit Rank": st.column_config.TextColumn("순위")
         })
 
-    st.info('Progress Bar 우측 값은 누적액 입니다')
+    st.info('Progress Bar 우측값 = 누적액')
 
     # 개인별 매출 기여 순위 TOP 5
     individual_sales = data.groupby('Sales Person')['Sales Amount'].sum().reset_index().sort_values('Sales Amount', ascending=False).head(5)
