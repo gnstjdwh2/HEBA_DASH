@@ -351,16 +351,17 @@ team_weekly_sales = data.groupby(['MonthWeek', 'Team'])['Sales Amount'].sum().re
 # 그래프 생성
 fig = go.Figure()
 
+# x축 레이블 순서 고정을 위한 배열 생성
+x_labels = weekly_sales['MonthWeek']
+
 # 막대 그래프 추가
 fig.add_trace(go.Bar(x=weekly_sales['MonthWeek'], y=weekly_sales['Sales Amount'], name='전체 매출', marker_color='rgba(220, 220, 220, 0.8)'))
 
 # 팀별 선 그래프 추가
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-
 for i, team in enumerate(team_weekly_sales['Team'].unique()):
     team_data = team_weekly_sales[team_weekly_sales['Team'] == team]
-    fig.add_trace(go.Scatter(x=team_data['MonthWeek'], y=team_data['Sales Amount'], name=team, mode='lines+markers',
-                             marker=dict(color=colors[i % len(colors)])))
+    fig.add_trace(go.Scatter(x=team_data['MonthWeek'], y=team_data['Sales Amount'], name=team, mode='lines+markers', marker=dict(color=colors[i % len(colors)])))
 
 # 그래프 레이아웃 설정
 fig.update_layout(
@@ -368,7 +369,8 @@ fig.update_layout(
     xaxis_title='',
     yaxis_title='',
     legend_title='',
-    hovermode='x unified'
+    hovermode='x unified',
+    xaxis=dict(categoryarray=x_labels)  # x축 레이블 순서 고정
 )
 
 # Streamlit에 그래프 표시
