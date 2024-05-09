@@ -6,3 +6,4 @@ pyinstaller
 streamlit_theme
 streamlit-authenticator
 streamlit-lottie
+bs4

@@ -4,6 +4,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import altair as alt
 from datetime import date, datetime
+import requests
+from bs4 import BeautifulSoup
 
 # 데이터 파일 경로
 DATA_FILE = "sales_data.csv"
@@ -198,32 +200,28 @@ with st.sidebar:
 start_date = st.sidebar.date_input("시작 날짜", value=data['Date'].min())
 end_date = st.sidebar.date_input("종료 날짜", value=data['Date'].max())
 
-    # 필터링된 데이터
+# 필터링된 데이터
 filtered_data = data[(data['Date'] >= pd.to_datetime(start_date)) & (data['Date'] <= pd.to_datetime(end_date))]
 
 with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
     # 날짜 입력
     date = st.date_input("날짜", value=datetime.today())
-    
     # 팀 선택
     team = st.selectbox("팀", ["게임", "굿즈", "패스트 컨설팅", "잔여티켓 플랫폼", "Kindle 전자책"])
-    
     # 매출 생성자 입력
     sales_person = st.text_input("매출 생성자")
-    
     # 매출 금액 입력
     sales_amount_str = st.text_input("매출 금액", value="0")
-    
     # 수익 금액 입력
     profit_amount_str = st.text_input("수익 금액", value="0")
-    
+
     if st.button("입력"):
         if sales_amount_str != "0":
             # 입력된 문자열을 숫자로 변환
             try:
                 sales_amount = float(sales_amount_str)
                 profit_amount = float(profit_amount_str)
-                
+
                 # 입력된 데이터를 데이터프레임에 추가
                 new_data = pd.DataFrame({
                     "Date": [date],
@@ -233,41 +231,101 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
                     "Profit Amount": [profit_amount]
                 })
                 data = pd.concat([data, new_data], ignore_index=True)
-                
+
                 # 날짜별로 정렬
                 data["Date"] = pd.to_datetime(data["Date"])
                 data = data.sort_values("Date")
-                
+
                 # CSV 파일에 저장
                 data.to_csv(DATA_FILE, index=False)
-                
+
                 current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
                 # 가장 최근에 입력한 데이터 내용 출력
                 st.success(f"입력 완료\n"
-                        f"\n날짜: {current_datetime}\n"
-                        f"\n팀: {team}\n"
-                        f"\n매출 생성자: {sales_person}\n"
-                        f"\n매출 금액: {sales_amount}\n"
-                        f"\n수익 금액: {profit_amount}\n")
+                           f"\n날짜: {current_datetime}\n"
+                           f"\n팀: {team}\n"
+                           f"\n매출 생성자: {sales_person}\n"
+                           f"\n매출 금액: {sales_amount}\n"
+                           f"\n수익 금액: {profit_amount}\n")
 
                 # 입력란 초기화
                 sales_person = ""
                 sales_amount_str = ""
                 profit_amount_str = ""
-                
                 st.experimental_rerun()
+
             except ValueError:
                 st.error("매출 금액과 수익 금액은 숫자로 입력해주세요.")
         else:
             st.warning("매출액은 필수 입니다.")
+
+with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
+    # st.write("수정할 데이터를 선택하세요.")
+    
+    # 날짜 선택
+    selected_date = st.date_input("날짜 선택", value=None, min_value=data["Date"].min(), max_value=data["Date"].max())
+    
+    # 팀 선택
+    selected_team = st.selectbox("팀 선택", data["Team"].unique().tolist())
+
+    # 선택한 조건에 맞는 데이터 필터링
+    if selected_date is not None and selected_team:
+        filtered_data_side = data[(data["Date"] == pd.to_datetime(selected_date)) & (data["Team"] == selected_team)]
+    elif selected_date is not None:
+        filtered_data_side = data[data["Date"] == pd.to_datetime(selected_date)]
+    elif selected_team:
+        filtered_data_side = data[data["Team"] == selected_team]
+    else:
+        filtered_data_side = data
+    
+    if not filtered_data_side.empty:
+        selected_index = st.number_input("수정할 데이터 선택", min_value=0, max_value=len(filtered_data_side) - 1, step=1)
+        
+        if selected_index < len(filtered_data):
+            selected_data = filtered_data_side.iloc[selected_index]
+            st.write("선택한 데이터:")
+            st.write(selected_data)
+            
+            # 수정할 열 선택
+            columns_to_edit = st.multiselect("수정할 데이터 선택", data.columns)
+            
+            # 수정할 값 입력
+            edited_values = {}
+            for column in columns_to_edit:
+                current_value = selected_data[column]
+                new_value = st.text_input(f"{column} 수정", value=current_value)
+                edited_values[column] = new_value
+            
+            if st.button("수정"):
+                # 데이터프레임 업데이트
+                for column, value in edited_values.items():
+                    data.at[selected_data.name, column] = value
+                
+                # CSV 파일에 저장
+                data.to_csv(DATA_FILE, index=False)
+                st.success("데이터가 수정되었습니다.")
+                st.experimental_rerun()
+            
+            if st.button("삭제"):
+                # 선택한 데이터 삭제
+                data = data.drop(selected_data.name)
+                
+                # CSV 파일에 저장
+                data.to_csv(DATA_FILE, index=False)
+                st.success("데이터가 삭제되었습니다.")
+                st.experimental_rerun()
+        else:
+            st.warning("유효한 데이터를 선택해주세요.")
+    else:
+        st.warning("선택한 조건에 맞는 데이터가 없습니다.")
 
 ## section layout 조절
 col1, col2 = st.columns(2)
 
 with col1:
     # 프로젝트별 매출 현황
-    df_project_sales = data.groupby('Team')['Sales Amount'].sum().sort_values(ascending=False)
-    df_project_profit = data.groupby('Team')['Profit Amount'].sum().sort_values(ascending=False)
+    df_project_sales = filtered_data.groupby('Team')['Sales Amount'].sum().sort_values(ascending=False)
+    df_project_profit = filtered_data.groupby('Team')['Profit Amount'].sum().sort_values(ascending=False)
 
     # 팀별 매출 및 수익 데이터
     df_team_sales_profit = filtered_data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'}).reset_index()
