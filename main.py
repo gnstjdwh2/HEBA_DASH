@@ -6,6 +6,7 @@ import altair as alt
 from datetime import date, datetime
 import requests
 from bs4 import BeautifulSoup
+import hmac
 
 # 데이터 파일 경로
 DATA_FILE = "sales_data.csv"
@@ -38,6 +39,36 @@ st.set_page_config(
 )
 
 alt.themes.enable("dark")
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if hmac.compare_digest(st.session_state["password"], st.secrets["password"]):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # Don't store the password.
+        else:
+            st.session_state["password_correct"] = False
+
+    col1, col2, col3 = st.columns([1,1,1])
+    with col2:
+        # Return True if the password is validated.
+        if st.session_state.get("password_correct", False):
+            return True
+
+        # Show input for password.
+        st.text_input(
+            "Password", type="password", on_change=password_entered, key="password"
+        )
+        if "password_correct" in st.session_state:
+            st.error("😕 Password incorrect")
+        return False
+
+
+if not check_password():
+    st.stop()  # Do not continue if check_password is not True.
+
 
 # Streamlit 앱 디자인 수정
 st.markdown(f"""
