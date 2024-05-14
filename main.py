@@ -290,12 +290,12 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
         else:
             st.warning("매출액은 필수 입니다.")
 
+data_key_json = {"Date" : "날짜", "Team" : "팀", "Sales Person" : "매출 생성자", "Sales Amount" : "매출 금액", "Profit Amount" : "수익 금액"}
+
 with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
     # st.write("수정할 데이터를 선택하세요.")
-    
     # 날짜 선택
     selected_date = st.date_input("날짜 선택", value=None, min_value=data["Date"].min(), max_value=data["Date"].max())
-    
     # 팀 선택
     selected_team = st.selectbox("팀 선택", data["Team"].unique().tolist())
 
@@ -308,39 +308,74 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
         filtered_data_side = data[data["Team"] == selected_team]
     else:
         filtered_data_side = data
-    
+
     if not filtered_data_side.empty:
         selected_index = st.number_input("수정할 데이터 선택", min_value=0, max_value=len(filtered_data_side) - 1, step=1)
         
         if selected_index < len(filtered_data):
             selected_data = filtered_data_side.iloc[selected_index]
             st.write("선택한 데이터:")
-            st.write(selected_data)
             
+            # 선택한 데이터의 키를 data_key_json 딕셔너리의 값으로 변경하여 보여줌
+            displayed_data = {data_key_json[key]: value for key, value in selected_data.to_dict().items()}
+            
+            # "Date" 열을 "년-월-일" 형식의 문자열로 변환
+            displayed_data["날짜"] = displayed_data["날짜"].strftime("%Y-%m-%d")
+            
+            st.write(displayed_data)
+
             # 수정할 열 선택
-            columns_to_edit = st.multiselect("수정할 데이터 선택", data.columns)
+            columns_to_edit = st.multiselect("수정할 데이터 선택", [data_key_json[col] for col in data.columns])
             
             # 수정할 값 입력
             edited_values = {}
             for column in columns_to_edit:
-                current_value = selected_data[column]
-                new_value = st.text_input(f"{column} 수정", value=current_value)
-                edited_values[column] = new_value
-            
-            if st.button("수정"):
+                original_column = list(data_key_json.keys())[list(data_key_json.values()).index(column)]
+                current_value = selected_data[original_column]
+                
+                # "Date" 열인 경우 날짜 선택 위젯 사용
+                if column == "날짜":
+                    new_value = st.date_input(f"{column} 수정", value=current_value)
+                else:
+                    new_value = st.text_input(f"{column} 수정", value=current_value)
+                
+                edited_values[original_column] = new_value
+
+            # "수정" "삭제"
+            col1, col2 = st.columns(2)
+
+            with col1:
+                modify_button = st.button("수정", key="modify_button")
+
+            with col2:
+                delete_button = st.button("삭제", key="delete_button")
+
+            # 버튼 스타일 적용
+            st.markdown(
+                """
+                <style>
+                div.stButton > button {
+                    width: 100%;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if modify_button:
                 # 데이터프레임 업데이트
                 for column, value in edited_values.items():
                     data.at[selected_data.name, column] = value
-                
+
                 # CSV 파일에 저장
                 data.to_csv(DATA_FILE, index=False)
                 st.success("데이터가 수정되었습니다.")
                 st.experimental_rerun()
-            
-            if st.button("삭제"):
+
+            if delete_button:
                 # 선택한 데이터 삭제
                 data = data.drop(selected_data.name)
-                
+
                 # CSV 파일에 저장
                 data.to_csv(DATA_FILE, index=False)
                 st.success("데이터가 삭제되었습니다.")
