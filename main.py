@@ -157,8 +157,7 @@ with st.sidebar:
         
 # 전체 매출 및 목표
 total_sales = data['Sales Amount'].sum()
-total_target = 100000000  # 1억원
-
+total_target = 100000000.0  # 1억원
 
 # 달성률 사이드바
 with st.sidebar:
@@ -170,8 +169,8 @@ with st.sidebar:
     df_project_rank = pd.merge(df_project_sales_rank, df_project_profit_rank, on='Team')
 
     # 매출 달성 목표액 및 수익 달성 목표액 설정
-    sales_target = 100000000  # 1억
-    profit_target = 25000000  # 2500만원
+    sales_target = 100000000.0  # 1억
+    profit_target = 25000000.0
 
     # 총 매출액 및 총 수익액 계산
     total_sales = df_project_rank['Sales Amount'].sum()
