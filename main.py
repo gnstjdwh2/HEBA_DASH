@@ -230,16 +230,16 @@ with st.sidebar:
 
         return plot_bg + plot + text
 
-    # donut_chart_sales = make_donut(sales_achievement_rate, '매출 달성률', 'blue')
-    # donut_chart_profit = make_donut(profit_achievement_rate, '수익 달성률', 'orange')
+    donut_chart_sales = make_donut(sales_achievement_rate, '매출 달성률', 'blue')
+    donut_chart_profit = make_donut(profit_achievement_rate, '수익 달성률', 'orange')
 
-    # achievement_col = st.columns(2)
-    # with achievement_col[0]:
-    #     st.info(f'매출 \n\n {total_sales:,.0f} ₩')
-    #     st.altair_chart(donut_chart_sales)
-    # with achievement_col[1]:
-    #     st.info(f'수익 ({(total_profit / total_sales):.2%})\n\n{total_profit:,.0f} ₩')
-    #     st.altair_chart(donut_chart_profit)
+    achievement_col = st.columns(2)
+    with achievement_col[0]:
+        st.info(f'매출 \n\n {total_sales:,.0f} ₩')
+        st.altair_chart(donut_chart_sales)
+    with achievement_col[1]:
+        st.info(f'수익 ({(total_profit / total_sales):.2%})\n\n{total_profit:,.0f} ₩')
+        st.altair_chart(donut_chart_profit)
 
 # 사이드바 생성
 start_date = st.sidebar.date_input("시작 날짜", value=data['Date'].min())
@@ -464,6 +464,127 @@ with col1:
 
     st.plotly_chart(fig, use_container_width=True)
 
+    # # 팀별 매출 및 수익 데이터
+    # df_team_sales_profit = filtered_data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'}).reset_index()
+
+    # # 매출 1등 팀과 수익 1등 팀 찾기
+    # max_sales_team = df_team_sales_profit.loc[df_team_sales_profit['Sales Amount'].idxmax(), 'Team']
+    # max_profit_team = df_team_sales_profit.loc[df_team_sales_profit['Profit Amount'].idxmax(), 'Team']
+
+    # # 매출 막대 색상 설정
+    # sales_colors = ['#29b5e8' if team == max_sales_team else '#155F7A' for team in df_team_sales_profit['Team']]
+
+    # # 수익 막대 색상 설정
+    # profit_colors = ['#F39C12' if team == max_profit_team else '#875A12' for team in df_team_sales_profit['Team']]
+
+    # # 혼합 막대 그래프 생성
+    # fig_sales_profit_by_project = go.Figure(data=[
+    #     go.Bar(
+    #         name='매출',
+    #         x=df_team_sales_profit['Team'],
+    #         y=df_team_sales_profit['Sales Amount'],
+    #         marker_color=sales_colors,
+    #         opacity=0.7
+    #     ),
+    #     go.Bar(
+    #         name='수익',
+    #         x=df_team_sales_profit['Team'],
+    #         y=df_team_sales_profit['Profit Amount'],
+    #         marker_color=profit_colors,
+    #         opacity=0.7
+    #     )
+    # ])
+
+    # # 그래프 레이아웃 설정
+    # fig_sales_profit_by_project.update_layout(
+    #     title='팀별 매출 및 수익',
+    #     xaxis_title='',
+    #     yaxis_title='',
+    #     barmode='group',
+    #     legend=dict(x=0.8, y=1, orientation='v'),
+    #     plot_bgcolor='rgba(255, 255, 255, 0.8)',  # 배경색 설정
+    #     paper_bgcolor='rgba(255, 255, 255, 0.8)',  # 배경색 설정
+    #     font=dict(color='black'),  # 글자색 설정
+    #     height=300,
+    #     margin=dict(l=20, r=20, t=40, b=20),  # 그래프 여백 설정
+    #     shapes=[  # 그래프 테두리 설정
+    #         dict(
+    #             type='rect',
+    #             xref='paper', yref='paper',
+    #             x0=0, y0=0, x1=1, y1=1,
+    #             line=dict(color='black', width=1)
+    #         )
+    #     ]
+    # )
+
+    # st.plotly_chart(fig_sales_profit_by_project, use_container_width=True)
+
+    # team_data = filtered_data.groupby('Team').agg({'Sales Amount': 'sum', 'Profit Amount': 'sum'})
+    # team_data['Profit Margin'] = team_data['Profit Amount'] / team_data['Sales Amount']
+
+    # # 팀별 수익률 표시
+    # fig = px.bar(team_data, x=team_data.index, y='Profit Margin', title='팀별 수익률', text_auto='.2%')
+    # fig.update_layout(xaxis_title='', yaxis_title='', height=300,
+    #                 yaxis=dict(tickmode='array', tickvals=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
+    #                             ticktext=['0%', '20%', '40%', '60%', '80%', '100%']),
+    #                 plot_bgcolor='rgba(255, 255, 255, 0.8)',  # 배경색 설정
+    #                 paper_bgcolor='rgba(255, 255, 255, 0.8)',  # 배경색 설정
+    #                 font=dict(color='black'),  # 글자색 설정
+    #                 margin=dict(l=20, r=20, t=40, b=20),  # 그래프 여백 설정
+    #                 shapes=[  # 그래프 테두리 설정
+    #                     dict(
+    #                         type='rect',
+    #                         xref='paper', yref='paper',
+    #                         x0=0, y0=0, x1=1, y1=1,
+    #                         line=dict(color='black', width=1)
+    #                     )
+    #                 ]
+    # )
+
+    # # 차트 색상 설정
+    # fig.update_traces(marker_color=['#27AE60' if pm >= 0.5 else '#12783D' for pm in team_data['Profit Margin']])
+
+    # st.plotly_chart(fig, use_container_width=True)
+
+with col2:
+    # 팀별 매출 합계 계산
+    team_sales = filtered_data.groupby('Team')['Sales Amount'].sum().reset_index()
+    # 팀별 수익 합계 계산
+    team_profit = filtered_data.groupby('Team')['Profit Amount'].sum().reset_index()
+
+    # 파이 차트 데이터 생성
+    fig = go.Figure(data=[
+        go.Pie(
+            name='수익',
+            labels=team_profit['Team'],
+            values=team_profit['Profit Amount'],
+            marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
+            textinfo='none',
+            hole=0.4  # 수익 차트를 안쪽 원으로 설정
+        ),
+        go.Pie(
+            name='매출',
+            labels=team_sales['Team'],
+            values=team_sales['Sales Amount'],
+            marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
+            textinfo='none',
+            hole=0.7  # 매출 차트를 바깥 원으로 설정
+        )
+    ])
+
+    # 차트 레이아웃 설정
+    fig.update_layout(
+        title='팀별 매출 및 수익 비중',
+        height=585,
+        font=dict(color=color_scheme['text']),
+        plot_bgcolor=color_scheme['background'],
+        paper_bgcolor=color_scheme['background'],
+        legend=dict(orientation='h', xanchor='center', x=0.5, y=-0.1)
+    )
+
+    # 차트 렌더링
+    st.plotly_chart(fig, use_container_width=True)
+
 ## 주차별 매출
 # 주차 계산을 위해 'Date' 열을 datetime으로 변환
 data = filtered_data.copy()  # filtered_data를 복사하여 사용
@@ -510,45 +631,6 @@ fig.update_layout(
 
 # Streamlit에 그래프 표시
 st.plotly_chart(fig, use_container_width=True)
-
-with col2:
-    # 팀별 매출 합계 계산
-    team_sales = filtered_data.groupby('Team')['Sales Amount'].sum().reset_index()
-    # 팀별 수익 합계 계산
-    team_profit = filtered_data.groupby('Team')['Profit Amount'].sum().reset_index()
-
-    # 파이 차트 데이터 생성
-    fig = go.Figure(data=[
-        go.Pie(
-            name='수익',
-            labels=team_profit['Team'],
-            values=team_profit['Profit Amount'],
-            marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
-            textinfo='none',
-            hole=0.4  # 수익 차트를 안쪽 원으로 설정
-        ),
-        go.Pie(
-            name='매출',
-            labels=team_sales['Team'],
-            values=team_sales['Sales Amount'],
-            marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
-            textinfo='none',
-            hole=0.7  # 매출 차트를 바깥 원으로 설정
-        )
-    ])
-
-    # 차트 레이아웃 설정
-    fig.update_layout(
-        title='팀별 매출 및 수익 비중',
-        height=585,
-        font=dict(color=color_scheme['text']),
-        plot_bgcolor=color_scheme['background'],
-        paper_bgcolor=color_scheme['background'],
-        legend=dict(orientation='h', xanchor='center', x=0.5, y=-0.1)
-    )
-
-    # 차트 렌더링
-    st.plotly_chart(fig, use_container_width=True)
 
 ## ipyvizzu and ipyvizzu-story
 # 팀별 전체 수익 계산
