@@ -4,9 +4,12 @@ import plotly.express as px
 import plotly.graph_objects as go
 import altair as alt
 from datetime import date, datetime
-import requests
-from bs4 import BeautifulSoup
 import hmac
+from ipyvizzu import Chart, Data, Config, Style, DisplayTarget
+from streamlit.components.v1 import html
+from ipyvizzustory import Story, Slide, Step
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # 데이터 파일 경로
 DATA_FILE = "sales_data.csv"
@@ -17,7 +20,8 @@ data['Date'] = pd.to_datetime(data['Date'])  # 날짜 형식으로 변환
 
 # 다크 모드 색상 설정
 color_scheme = {
-    'background': '#0E1117',
+    # 'background': '#0E1117',
+    'background' : 'white',
     'text': '#FFFFFF',
     'accent': '#1F77B4',
     'accent_negative': '#D62728'
@@ -89,6 +93,11 @@ st.markdown(f"""
         .sidebar .sidebar-content .sidebar-options label {{
             color: {color_scheme['text']};
         }}
+        .story {{
+            background-color: #0E1117
+            width: auto;
+            height: 480px;
+        }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -119,26 +128,32 @@ days_left = (due_date - today).days - 1 # 배포 시 하루 추가 되있어서 
 css = """
 <style>
 .st-info {
-    background-color: #0E1117;
-    color: #fff;
-    border: none;
-    border-radius: 15px;
-    padding: 15px;
-    font-size: 20px;
-    font-weight: bold;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
-    margin-bottom: 20px;
+  background-color: #E3F2FD;
+  color: #0D47A1;
+  border: 2px solid #2196F3;
+  border-radius: 15px;
+  padding: 15px;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  margin-bottom: 20px;
 }
 
 .st-info:hover {
-    transform: scale(1.05);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .st-info .icon {
-    font-size: 28px;
-    margin-bottom: 5px;
+  font-size: 28px;
+  margin-bottom: 5px;
+  color: #2196F3;
+}
+
+.st-info .dday {
+  color: #FF5722;
 }
 </style>
 """
@@ -157,7 +172,7 @@ with st.sidebar:
         
 # 전체 매출 및 목표
 total_sales = data['Sales Amount'].sum()
-total_target = 100000000.0  # 1억원
+total_target = 100000000.0  # 1억
 
 # 달성률 사이드바
 with st.sidebar:
@@ -169,8 +184,8 @@ with st.sidebar:
     df_project_rank = pd.merge(df_project_sales_rank, df_project_profit_rank, on='Team')
 
     # 매출 달성 목표액 및 수익 달성 목표액 설정
-    sales_target = 100000000.0  # 1억
-    profit_target = 25000000.0
+    sales_target = 100000000.0 # 1억
+    profit_target = 25000000.0 # 2500만
 
     # 총 매출액 및 총 수익액 계산
     total_sales = df_project_rank['Sales Amount'].sum()
@@ -215,16 +230,16 @@ with st.sidebar:
 
         return plot_bg + plot + text
 
-    donut_chart_sales = make_donut(sales_achievement_rate, '매출 달성률', 'blue')
-    donut_chart_profit = make_donut(profit_achievement_rate, '수익 달성률', 'orange')
+    # donut_chart_sales = make_donut(sales_achievement_rate, '매출 달성률', 'blue')
+    # donut_chart_profit = make_donut(profit_achievement_rate, '수익 달성률', 'orange')
 
-    achievement_col = st.columns(2)
-    with achievement_col[0]:
-        st.info(f'매출 \n\n {total_sales:,.0f} ₩')
-        st.altair_chart(donut_chart_sales)
-    with achievement_col[1]:
-        st.info(f'수익 ({(total_profit / total_sales):.2%})\n\n{total_profit:,.0f} ₩')
-        st.altair_chart(donut_chart_profit)
+    # achievement_col = st.columns(2)
+    # with achievement_col[0]:
+    #     st.info(f'매출 \n\n {total_sales:,.0f} ₩')
+    #     st.altair_chart(donut_chart_sales)
+    # with achievement_col[1]:
+    #     st.info(f'수익 ({(total_profit / total_sales):.2%})\n\n{total_profit:,.0f} ₩')
+    #     st.altair_chart(donut_chart_profit)
 
 # 사이드바 생성
 start_date = st.sidebar.date_input("시작 날짜", value=data['Date'].min())
@@ -235,7 +250,7 @@ filtered_data = data[(data['Date'] >= pd.to_datetime(start_date)) & (data['Date'
 
 with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
     # 날짜 입력
-    date = st.date_input("날짜", value=datetime.today())
+    date_value = st.date_input("날짜", value=datetime.today())
     # 팀 선택
     team = st.selectbox("팀", ["게임", "굿즈", "패스트 컨설팅", "잔여티켓 플랫폼", "Kindle 전자책"])
     # 매출 생성자 입력
@@ -254,7 +269,7 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
 
                 # 입력된 데이터를 데이터프레임에 추가
                 new_data = pd.DataFrame({
-                    "Date": [date],
+                    "Date": [date_value],
                     "Team": [team],
                     "Sales Person": [sales_person],
                     "Sales Amount": [sales_amount],
@@ -277,12 +292,6 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
                            f"\n매출 생성자: {sales_person}\n"
                            f"\n매출 금액: {sales_amount}\n"
                            f"\n수익 금액: {profit_amount}\n")
-
-                # 입력란 초기화
-                sales_person = ""
-                sales_amount_str = ""
-                profit_amount_str = ""
-                st.experimental_rerun()
 
             except ValueError:
                 st.error("매출 금액과 수익 금액은 숫자로 입력해주세요.")
@@ -317,6 +326,7 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
             
             # 선택한 데이터의 키를 data_key_json 딕셔너리의 값으로 변경하여 보여줌
             displayed_data = {data_key_json[key]: value for key, value in selected_data.to_dict().items()}
+            # displayed_data_str = str(displayed_data).replace('{', '').replace('}', '')
             
             # "Date" 열을 "년-월-일" 형식의 문자열로 변환
             displayed_data["날짜"] = displayed_data["날짜"].strftime("%Y-%m-%d")
@@ -368,17 +378,19 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
 
                 # CSV 파일에 저장
                 data.to_csv(DATA_FILE, index=False)
-                st.success("데이터가 수정되었습니다.")
+                # st.success("데이터가 수정되었습니다.")
                 st.experimental_rerun()
 
             if delete_button:
-                # 선택한 데이터 삭제
-                data = data.drop(selected_data.name)
+                if st.warning("정말로 삭제하시겠습니까?"):
+                    if st.button("삭제"):
+                        # 선택한 데이터 삭제
+                        data = data.drop(selected_data.name)
 
-                # CSV 파일에 저장
-                data.to_csv(DATA_FILE, index=False)
-                st.success("데이터가 삭제되었습니다.")
-                st.experimental_rerun()
+                        # CSV 파일에 저장
+                        data.to_csv(DATA_FILE, index=False)
+                        # st.success("데이터가 삭제되었습니다.")
+                        st.experimental_rerun()
         else:
             st.warning("유효한 데이터를 선택해주세요.")
     else:
@@ -512,7 +524,6 @@ with col2:
             labels=team_profit['Team'],
             values=team_profit['Profit Amount'],
             marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
-            # hovertext=[f"수익: {profit:,.0f}" for team, profit in zip(team_profit['Team'], team_profit['Profit Amount'])],
             textinfo='none',
             hole=0.4  # 수익 차트를 안쪽 원으로 설정
         ),
@@ -521,7 +532,6 @@ with col2:
             labels=team_sales['Team'],
             values=team_sales['Sales Amount'],
             marker=dict(colors=px.colors.cyclical.IceFire, line=dict(color='black', width=0.3)),  # 색상 팔레트 변경
-            # hovertext=[f"매출: {sales:,.0f}" for team, sales in zip(team_sales['Team'], team_sales['Sales Amount'])],
             textinfo='none',
             hole=0.7  # 매출 차트를 바깥 원으로 설정
         )
@@ -539,6 +549,123 @@ with col2:
 
     # 차트 렌더링
     st.plotly_chart(fig, use_container_width=True)
+
+## ipyvizzu and ipyvizzu-story
+# 팀별 전체 수익 계산
+team_total_profit = filtered_data.groupby('Team')['Profit Amount'].sum().reset_index()
+
+# 팀별 수익의 30% 계산
+team_profit_30_percent = team_total_profit.copy()
+team_profit_30_percent['Profit Amount'] = team_profit_30_percent['Profit Amount'] * 0.3
+
+# 팀별 수익의 나머지 70% 계산
+team_profit_70_percent = team_total_profit.copy()
+team_profit_70_percent['Profit Amount'] = team_profit_70_percent['Profit Amount'] * 0.7
+
+# 전체 수익과 30% 수익, 나머지 70% 수익을 나타내는 데이터프레임 생성
+result_df = pd.DataFrame({
+    'Team': team_total_profit['Team'],
+    '팀별 수익': team_total_profit['Profit Amount'],
+    '수익의 30%': team_profit_30_percent['Profit Amount'],
+    '수익의 70%': team_profit_70_percent['Profit Amount']
+})
+
+# 수익의 30%의 전체 합계 계산
+total_30_percent_profit = team_profit_30_percent['Profit Amount'].sum()
+
+# # 수익의 30%의 전체 합계를 가지고 있는 데이터프레임 생성
+# new_row_df = pd.DataFrame({
+#     'Team': ['HEBA'],
+#     '팀별 수익': [total_30_percent_profit],
+#     '수익의 30%': [total_30_percent_profit],
+#     '수익의 70%': [0]
+# })
+
+# 기존 데이터프레임과 새로운 행을 가진 데이터프레임 연결
+# result_df = pd.concat([result_df, new_row_df], ignore_index=True)
+
+# 데이터 추가
+vizzu_data = Data()
+vizzu_data.add_df(result_df)
+
+story = Story(data=vizzu_data)
+
+slide1 = Slide(
+    Step(
+        Config({
+            "channels": {
+                "y": {"set": ["팀별 수익"]},
+                "x": {"set": ["Team"]},
+                "label": {"set": ["팀별 수익"]},
+            },
+        }
+),
+        Style(
+        {
+            "legend": {"width" : 100}
+        }
+    )
+    )
+)
+story.add_slide(slide1)
+
+slide2 = Slide(
+    Step(
+        Config(
+        {
+            "channels": {
+                "y": {"set": ["수익의 70%"]},
+                "x": {"set": ["Team"]},
+                "color": {"set": ["Team"]},
+                "label": {"set": ["수익의 70%"]}
+            },
+        }
+    )
+    )
+)
+story.add_slide(slide2)
+
+slide3 = Slide(
+    Step(
+        Config(
+        {
+            "channels": {
+                "y": {"set": ["수익의 30%"]},
+                "x": {"set": ["Team"]},
+                "color": {"set": ["Team"]},
+                "label": {"set": ["수익의 30%"]}
+            },
+        }
+    )
+    )
+)
+story.add_slide(slide3)
+
+slide4 = Slide(
+    Step(
+        Config(
+            {
+                "color" : "Team", 
+                "y":["Team"],
+                "channels" : {"x" :{"set": None}}}
+        )
+    )
+)
+story.add_slide(slide4)
+
+# you can set the width and height (CSS style)
+story.set_size(width="1000px", height="480px")
+
+
+# you can export the Story into a html file
+story.export_to_html(filename="mystory.html")
+
+# or you can get the html Story as a string
+html = story.to_html()
+# print(html)
+
+# you can display the Story with the `play` method
+story.play()
 
 with st.expander('팀 / 개인 성과 순위', expanded=False):
     df_project_sales_rank = df_project_sales.reset_index()

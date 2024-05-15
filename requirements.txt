@@ -7,3 +7,12 @@ streamlit_theme
 streamlit-authenticator
 streamlit-lottie
 bs4
+scrapy
+scrapydo
+scrapy-fake-useragent
+ipyvizzu
+ipyvizzu-story
+numpy
+streamlit_extras
+pyyaml
+st-vizzu
