@@ -644,27 +644,17 @@ team_profit_30_percent['Profit Amount'] = team_profit_30_percent['Profit Amount'
 team_profit_70_percent = team_total_profit.copy()
 team_profit_70_percent['Profit Amount'] = team_profit_70_percent['Profit Amount'] * 0.7
 
+# 수익의 30%의 전체 합계 계산
+total_30_percent_profit = team_profit_30_percent['Profit Amount'].sum()
+
 # 전체 수익과 30% 수익, 나머지 70% 수익을 나타내는 데이터프레임 생성
 result_df = pd.DataFrame({
     'Team': team_total_profit['Team'],
     '팀별 수익': team_total_profit['Profit Amount'],
     '수익의 30%': team_profit_30_percent['Profit Amount'],
-    '수익의 70%': team_profit_70_percent['Profit Amount']
+    '수익의 70%': team_profit_70_percent['Profit Amount'],
+    'HEBA' : total_30_percent_profit
 })
-
-# 수익의 30%의 전체 합계 계산
-total_30_percent_profit = team_profit_30_percent['Profit Amount'].sum()
-
-# # 수익의 30%의 전체 합계를 가지고 있는 데이터프레임 생성
-# new_row_df = pd.DataFrame({
-#     'Team': ['HEBA'],
-#     '팀별 수익': [total_30_percent_profit],
-#     '수익의 30%': [total_30_percent_profit],
-#     '수익의 70%': [0]
-# })
-
-# 기존 데이터프레임과 새로운 행을 가진 데이터프레임 연결
-# result_df = pd.concat([result_df, new_row_df], ignore_index=True)
 
 # 데이터 추가
 vizzu_data = Data()
@@ -734,6 +724,21 @@ slide4 = Slide(
     )
 )
 story.add_slide(slide4)
+
+slide5 = Slide(
+    Step(
+        Config(
+            {
+                "channels": {
+                    "y": {"set": ["HEBA"]},
+                    "x": {"set": None},
+                    "label": {"set": ["HEBA"]}
+            },
+        }
+        )
+    )
+)
+story.add_slide(slide5)
 
 # you can set the width and height (CSS style)
 story.set_size(width="1000px", height="480px")
