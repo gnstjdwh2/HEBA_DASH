@@ -66,7 +66,7 @@ def check_password():
             "Password", type="password", on_change=password_entered, key="password"
         )
         if "password_correct" in st.session_state:
-            st.error("😕 Password incorrect")
+            st.error("비밀번호를 확인해주세요 😕")
         return False
 
 
@@ -734,6 +734,7 @@ slide5 = Slide(
                     "x": {"set": None},
                     "label": {"set": ["HEBA"]}
             },
+
         }
         )
     )
@@ -785,5 +786,4 @@ with st.expander('팀 / 개인 성과 순위', expanded=False):
         st.dataframe(individual_sales, column_order=('이름', '매출'), hide_index=True, width=None, column_config={
             "이름": st.column_config.TextColumn("이름"),
             "매출": st.column_config.ProgressColumn("매출", format="%f", min_value=0, max_value=max(individual_sales['매출'])),
-            # "순위": st.column_config.TextColumn("순위")
         })
