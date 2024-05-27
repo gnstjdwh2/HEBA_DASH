@@ -16,7 +16,9 @@ DATA_FILE = "sales_data.csv"
 
 # 데이터 불러오기
 data = pd.read_csv(DATA_FILE)
-data['Date'] = pd.to_datetime(data['Date'])  # 날짜 형식으로 변환
+data['Date'] = pd.to_datetime(data['Date'])
+data['Sales Amount'] = data['Sales Amount'].astype(float)
+data['Profit Amount'] = data['Profit Amount'].astype(float)
 
 # 다크 모드 색상 설정
 color_scheme = {
@@ -251,12 +253,29 @@ filtered_data = data[(data['Date'] >= pd.to_datetime(start_date)) & (data['Date'
 with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
     # 날짜 입력
     date_value = st.date_input("날짜", value=datetime.today())
+    
     # 팀 선택
-    team = st.selectbox("팀", ["게임", "굿즈", "패스트 컨설팅", "잔여티켓 플랫폼", "Kindle 전자책"])
-    # 매출 생성자 입력
-    sales_person = st.text_input("매출 생성자")
+    team = st.selectbox("팀", ["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"])
+    
+    # 매출 생성자 선택
+    if team == "게임":
+        sales_person = st.selectbox("매출 생성자", ["없음", "김다원", "김준혁", "이준석", "최윤영"])
+    elif team == "굿즈":
+        sales_person = st.selectbox("매출 생성자", ["없음", "김선목", "김채영"])
+    elif team == "두드림":
+        sales_person = st.selectbox("매출 생성자", ["없음", "민경환", "송시원", "임정희"])
+    elif team == "미디어":
+        sales_person = st.selectbox("매출 생성자", ["없음", "권아인", "김주원", "심민석"])
+    elif team == "Shift":
+        sales_person = st.selectbox("매출 생성자", ["없음", "김문기", "박은채", "서정욱", "조성훈"])
+    elif team == "전자책":
+        sales_person = st.selectbox("매출 생성자", ["없음", "박해민", "이송하"])
+    else:  # 축제
+        sales_person = st.selectbox("매출 생성자", ["없음", "김세연", "김선목", "김채영", "남승현", "민경환", "최윤영"])
+    
     # 매출 금액 입력
     sales_amount_str = st.text_input("매출 금액", value="0")
+
     # 수익 금액 입력
     profit_amount_str = st.text_input("수익 금액", value="0")
 
@@ -266,7 +285,7 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
             try:
                 sales_amount = float(sales_amount_str)
                 profit_amount = float(profit_amount_str)
-
+                
                 # 입력된 데이터를 데이터프레임에 추가
                 new_data = pd.DataFrame({
                     "Date": [date_value],
@@ -276,32 +295,155 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
                     "Profit Amount": [profit_amount]
                 })
                 data = pd.concat([data, new_data], ignore_index=True)
-
+                
+                # 데이터 타입 변환
+                data["Sales Amount"] = data["Sales Amount"].astype(float)
+                data["Profit Amount"] = data["Profit Amount"].astype(float)
+                
                 # 날짜별로 정렬
                 data["Date"] = pd.to_datetime(data["Date"])
                 data = data.sort_values("Date")
-
+                
                 # CSV 파일에 저장
                 data.to_csv(DATA_FILE, index=False)
-
+                
                 current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
+                
                 # 가장 최근에 입력한 데이터 내용 출력
                 st.success(f"입력 완료\n"
-                           f"\n날짜: {current_datetime}\n"
-                           f"\n팀: {team}\n"
-                           f"\n매출 생성자: {sales_person}\n"
-                           f"\n매출 금액: {sales_amount}\n"
-                           f"\n수익 금액: {profit_amount}\n")
-
+                        f"\n날짜: {current_datetime}\n"
+                        f"\n팀: {team}\n"
+                        f"\n매출 생성자: {sales_person}\n"
+                        f"\n매출 금액: {sales_amount}\n"
+                        f"\n수익 금액: {profit_amount}\n")
             except ValueError:
                 st.error("매출 금액과 수익 금액은 숫자로 입력해주세요.")
         else:
             st.warning("매출액은 필수 입니다.")
 
+# data_key_json = {"Date" : "날짜", "Team" : "팀", "Sales Person" : "매출 생성자", "Sales Amount" : "매출 금액", "Profit Amount" : "수익 금액"}
+
+# with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
+#     # st.write("수정할 데이터를 선택하세요.")
+#     # 날짜 선택
+#     selected_date = st.date_input("날짜 선택", value=None, min_value=data["Date"].min(), max_value=data["Date"].max())
+#     # 팀 선택
+#     selected_team = st.selectbox("팀 선택", data["Team"].unique().tolist())
+
+#     # 선택한 조건에 맞는 데이터 필터링
+#     if selected_date is not None and selected_team:
+#         filtered_data_side = data[(data["Date"] == pd.to_datetime(selected_date)) & (data["Team"] == selected_team)]
+#     elif selected_date is not None:
+#         filtered_data_side = data[data["Date"] == pd.to_datetime(selected_date)]
+#     elif selected_team:
+#         filtered_data_side = data[data["Team"] == selected_team]
+#     else:
+#         filtered_data_side = data
+
+#     if not filtered_data_side.empty:
+#         selected_index = st.number_input("수정할 데이터 선택", min_value=0, max_value=len(filtered_data_side) - 1, step=1)
+        
+#         if selected_index < len(filtered_data):
+#             selected_data = filtered_data_side.iloc[selected_index]
+#             st.write("선택한 데이터:")
+            
+#             # 선택한 데이터의 키를 data_key_json 딕셔너리의 값으로 변경하여 보여줌
+#             displayed_data = {data_key_json[key]: value for key, value in selected_data.to_dict().items()}
+#             # displayed_data_str = str(displayed_data).replace('{', '').replace('}', '')
+            
+#             # "Date" 열을 "년-월-일" 형식의 문자열로 변환
+#             displayed_data["날짜"] = displayed_data["날짜"].strftime("%Y-%m-%d")
+            
+#             st.write(displayed_data)
+
+#             # 수정할 열 선택
+#             columns_to_edit = st.multiselect("수정할 데이터 선택", [data_key_json[col] for col in data.columns])
+            
+#             # 수정할 값 입력
+#             edited_values = {}
+#             for column in columns_to_edit:
+#                 original_column = list(data_key_json.keys())[list(data_key_json.values()).index(column)]
+#                 current_value = selected_data[original_column]
+                
+#                 if column == "날짜":
+#                     new_value = st.date_input(f"{column} 수정", value=current_value)
+#                 elif column == "팀":
+#                     new_value = st.selectbox(f"{column} 수정", options=["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"], index=["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"].index(current_value))
+#                 elif column == "매출 생성자":
+#                     team = selected_data["Team"]
+#                     if team == "게임":
+#                         options = ["없음", "김다원", "김준혁", "이준석", "최윤영"]
+#                     elif team == "굿즈":
+#                         options = ["없음", "김선목", "김채영"]
+#                     elif team == "두드림":
+#                         options = ["없음", "민경환", "송시원", "임정희"]
+#                     elif team == "미디어":
+#                         options = ["없음", "권아인", "김주원", "심민석"]
+#                     elif team == "Shift":
+#                         options = ["없음", "김문기", "박은채", "서정욱", "조성훈"]
+#                     elif team == "전자책":
+#                         options = ["없음", "박해민", "이송하"]
+#                     else:  # 축제
+#                         options = ["없음", "김세연", "김선목", "김채영", "남승현", "민경환", "최윤영"]
+#                     new_value = st.selectbox(f"{column} 수정", options=options, index=options.index(current_value))
+#                 else:
+#                     new_value = st.text_input(f"{column} 수정", value=current_value)
+                
+#                 edited_values[original_column] = new_value
+
+#             # "수정" "삭제"
+#             col1, col2 = st.columns(2)
+
+#             with col1:
+#                 modify_button = st.button("수정", key="modify_button")
+
+#             with col2:
+#                 delete_button = st.button("삭제", key="delete_button")
+
+#             # 버튼 스타일 적용
+#             st.markdown(
+#                 """
+#                 <style>
+#                 div.stButton > button {
+#                     width: 100%;
+#                 }
+#                 </style>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+
+#             if modify_button:
+#                 # 데이터프레임 업데이트
+#                 for column, value in edited_values.items():
+#                     data.at[selected_data.name, column] = value
+
+#                 # CSV 파일에 저장
+#                 data.to_csv(DATA_FILE, index=False)
+#                 # st.success("데이터가 수정되었습니다.")
+#                 st.rerun()
+
+#             if delete_button:
+#                 if st.warning("정말로 삭제하시겠습니까?"):
+#                     if st.button("삭제"):
+#                         # 선택한 데이터와 일치하는 행의 인덱스 찾기
+#                         index_to_delete = filtered_data_side.index[selected_index]
+                        
+#                         # 인덱스를 사용하여 데이터프레임에서 행 삭제
+#                         data = data.drop(index=index_to_delete)
+                        
+#                         # CSV 파일에 저장
+#                         data.to_csv(DATA_FILE, index=False)
+                        
+#                         st.success("데이터가 삭제되었습니다.")
+#                         # st.rerun()
+#         else:
+#             st.warning("유효한 데이터를 선택해주세요.")
+#     else:
+#         st.warning("선택한 조건에 맞는 데이터가 없습니다.")
+
 data_key_json = {"Date" : "날짜", "Team" : "팀", "Sales Person" : "매출 생성자", "Sales Amount" : "매출 금액", "Profit Amount" : "수익 금액"}
 
 with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
-    # st.write("수정할 데이터를 선택하세요.")
     # 날짜 선택
     selected_date = st.date_input("날짜 선택", value=None, min_value=data["Date"].min(), max_value=data["Date"].max())
     # 팀 선택
@@ -320,13 +462,12 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
     if not filtered_data_side.empty:
         selected_index = st.number_input("수정할 데이터 선택", min_value=0, max_value=len(filtered_data_side) - 1, step=1)
         
-        if selected_index < len(filtered_data):
+        if selected_index < len(filtered_data_side):
             selected_data = filtered_data_side.iloc[selected_index]
             st.write("선택한 데이터:")
             
             # 선택한 데이터의 키를 data_key_json 딕셔너리의 값으로 변경하여 보여줌
             displayed_data = {data_key_json[key]: value for key, value in selected_data.to_dict().items()}
-            # displayed_data_str = str(displayed_data).replace('{', '').replace('}', '')
             
             # "Date" 열을 "년-월-일" 형식의 문자열로 변환
             displayed_data["날짜"] = displayed_data["날짜"].strftime("%Y-%m-%d")
@@ -334,7 +475,7 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
             st.write(displayed_data)
 
             # 수정할 열 선택
-            columns_to_edit = st.multiselect("수정할 데이터 선택", [data_key_json[col] for col in data.columns])
+            columns_to_edit = st.multiselect("수정할 데이터 선택", [data_key_json[col] for col in data.columns if col != 'Team'])
             
             # 수정할 값 입력
             edited_values = {}
@@ -342,9 +483,27 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
                 original_column = list(data_key_json.keys())[list(data_key_json.values()).index(column)]
                 current_value = selected_data[original_column]
                 
-                # "Date" 열인 경우 날짜 선택 위젯 사용
                 if column == "날짜":
                     new_value = st.date_input(f"{column} 수정", value=current_value)
+                elif column == "팀":
+                    new_value = st.selectbox(f"{column} 수정", options=["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"], index=["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"].index(current_value))
+                elif column == "매출 생성자":
+                    team = selected_data["Team"]
+                    if team == "게임":
+                        options = ["없음", "김다원", "김준혁", "이준석", "최윤영"]
+                    elif team == "굿즈":
+                        options = ["없음", "김선목", "김채영"]
+                    elif team == "두드림":
+                        options = ["없음", "민경환", "송시원", "임정희"]
+                    elif team == "미디어":
+                        options = ["없음", "권아인", "김주원", "심민석"]
+                    elif team == "Shift":
+                        options = ["없음", "김문기", "박은채", "서정욱", "조성훈"]
+                    elif team == "전자책":
+                        options = ["없음", "박해민", "이송하"]
+                    else:  # 축제
+                        options = ["없음", "김세연", "김선목", "김채영", "남승현", "민경환", "최윤영"]
+                    new_value = st.selectbox(f"{column} 수정", options=options, index=options.index(current_value))
                 else:
                     new_value = st.text_input(f"{column} 수정", value=current_value)
                 
@@ -377,20 +536,24 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
                     data.at[selected_data.name, column] = value
 
                 # CSV 파일에 저장
+                data['Date'] = pd.to_datetime(data['Date'])
                 data.to_csv(DATA_FILE, index=False)
-                # st.success("데이터가 수정되었습니다.")
+                st.success("데이터가 수정되었습니다.")
                 st.experimental_rerun()
 
             if delete_button:
                 if st.warning("정말로 삭제하시겠습니까?"):
-                    if st.button("삭제"):
-                        # 선택한 데이터 삭제
-                        data = data.drop(selected_data.name)
-
-                        # CSV 파일에 저장
-                        data.to_csv(DATA_FILE, index=False)
-                        # st.success("데이터가 삭제되었습니다.")
-                        st.experimental_rerun()
+                    # 선택한 데이터와 일치하는 행의 인덱스 찾기
+                    index_to_delete = filtered_data_side.index[selected_index]
+                    
+                    # 인덱스를 사용하여 데이터프레임에서 행 삭제
+                    data = data.drop(index=index_to_delete)
+                    
+                    # CSV 파일에 저장
+                    data.to_csv(DATA_FILE, index=False)
+                    
+                    st.success("데이터가 삭제되었습니다.")
+                    st.experimental_rerun()
         else:
             st.warning("유효한 데이터를 선택해주세요.")
     else:
@@ -613,11 +776,13 @@ x_labels = weekly_sales['MonthWeek']
 # 막대 그래프 추가
 fig.add_trace(go.Bar(x=weekly_sales['MonthWeek'], y=weekly_sales['Sales Amount'], name='전체 매출', marker_color='rgba(220, 220, 220, 0.8)'))
 
+# 팀별 색상 팔레트 생성
+colors = px.colors.qualitative.Set2
+
 # 팀별 선 그래프 추가
-colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
 for i, team in enumerate(team_weekly_sales['Team'].unique()):
     team_data = team_weekly_sales[team_weekly_sales['Team'] == team]
-    fig.add_trace(go.Scatter(x=team_data['MonthWeek'], y=team_data['Sales Amount'], name=team, mode='lines+markers', marker=dict(color=colors[i % len(colors)])))
+    fig.add_trace(go.Scatter(x=team_data['MonthWeek'], y=team_data['Sales Amount'], name=team, mode='lines+markers', marker=dict(color=colors[i])))
 
 # 그래프 레이아웃 설정
 fig.update_layout(
@@ -732,14 +897,15 @@ slide5 = Slide(
                 "channels": {
                     "y": {"set": ["HEBA"]},
                     "x": {"set": None},
-                    "label": {"set": ["HEBA"]}
-            },
-
-        }
+                    "label": {"set": ["HEBA"]},
+                },      
+            }
         )
     )
 )
 story.add_slide(slide5)
+
+
 
 # you can set the width and height (CSS style)
 story.set_size(width="1000px", height="480px")
