@@ -250,12 +250,12 @@ end_date = st.sidebar.date_input("종료 날짜", value=data['Date'].max())
 # 필터링된 데이터
 filtered_data = data[(data['Date'] >= pd.to_datetime(start_date)) & (data['Date'] <= pd.to_datetime(end_date))]
 
-with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
+with st.sidebar.expander("매출 / 비용 정보 입력", expanded=False):
     # 날짜 입력
     date_value = st.date_input("날짜", value=datetime.today())
     
     # 팀 선택
-    team = st.selectbox("팀", ["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"])
+    team = st.selectbox("팀", ["게임", "굿즈", "두드림", "HEBA", "Shift", "전자책", "축제"])
     
     # 매출 생성자 선택
     if team == "게임":
@@ -264,66 +264,60 @@ with st.sidebar.expander("매출 / 수익 정보 입력", expanded=False):
         sales_person = st.selectbox("매출 생성자", ["없음", "김선목", "김채영"])
     elif team == "두드림":
         sales_person = st.selectbox("매출 생성자", ["없음", "민경환", "송시원", "임정희"])
-    elif team == "미디어":
-        sales_person = st.selectbox("매출 생성자", ["없음", "권아인", "김주원", "심민석"])
+    elif team == "HEBA":
+        sales_person = st.selectbox("매출 생성자", ["없음"])
     elif team == "Shift":
-        sales_person = st.selectbox("매출 생성자", ["없음", "김문기", "박은채", "서정욱", "조성훈"])
+        sales_person = st.selectbox("매출 생성자", ["없음", "김문기", "박은채", "서정욱"])
     elif team == "전자책":
         sales_person = st.selectbox("매출 생성자", ["없음", "박해민", "이송하"])
     else:  # 축제
         sales_person = st.selectbox("매출 생성자", ["없음", "김세연", "김선목", "김채영", "남승현", "민경환", "최윤영"])
     
     # 매출 금액 입력
-    sales_amount_str = st.text_input("매출 금액", value="0")
+    sales_amount_str = st.text_input("매출", value="0")
 
-    # 수익 금액 입력
-    profit_amount_str = st.text_input("수익 금액", value="0")
+    # 비용 금액 입력
+    cost_amount_str = st.text_input("비용", value="0")
 
     if st.button("입력"):
-        if sales_amount_str != "0":
-            # 입력된 문자열을 숫자로 변환
-            try:
-                sales_amount = float(sales_amount_str)
-                profit_amount = float(profit_amount_str)
-                
-                # 입력된 데이터를 데이터프레임에 추가
-                new_data = pd.DataFrame({
-                    "Date": [date_value],
-                    "Team": [team],
-                    "Sales Person": [sales_person],
-                    "Sales Amount": [sales_amount],
-                    "Profit Amount": [profit_amount]
-                })
-                data = pd.concat([data, new_data], ignore_index=True)
-                
-                # 데이터 타입 변환
-                data["Sales Amount"] = data["Sales Amount"].astype(float)
-                data["Profit Amount"] = data["Profit Amount"].astype(float)
-                
-                # 날짜별로 정렬
-                data["Date"] = pd.to_datetime(data["Date"])
-                data = data.sort_values("Date")
-                
-                # CSV 파일에 저장
-                data.to_csv(DATA_FILE, index=False)
+        # 입력된 문자열을 숫자로 변환
+        try:
+            sales_amount = float(sales_amount_str)
+            cost_amount = float(cost_amount_str)
+            
+            # 수익 계산
+            profit_amount = sales_amount - cost_amount
+            
+            # 입력된 데이터를 데이터프레임에 추가
+            new_data = pd.DataFrame({
+                "Date": [date_value],
+                "Team": [team],
+                "Sales Person": [sales_person],
+                "Sales Amount": [sales_amount],
+                "Cost Amount": [cost_amount],
+                "Profit Amount": [profit_amount]
+            })
+            data = pd.concat([data, new_data], ignore_index=True)
+            
+            # 데이터 타입 변환
+            data["Sales Amount"] = data["Sales Amount"].astype(float)
+            data["Cost Amount"] = data["Cost Amount"].astype(float)
+            data["Profit Amount"] = data["Profit Amount"].astype(float)
+            
+            # 날짜별로 정렬
+            data["Date"] = pd.to_datetime(data["Date"])
+            data = data.sort_values("Date")
+            
+            # CSV 파일에 저장
+            data.to_csv(DATA_FILE, index=False)
 
-                st.rerun()
+            st.rerun()
                 
-                # current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M")
-                
-                # # 가장 최근에 입력한 데이터 내용 출력
-                # st.success(f"입력 완료\n"
-                #         f"\n날짜: {current_datetime}\n"
-                #         f"\n팀: {team}\n"
-                #         f"\n매출 생성자: {sales_person}\n"
-                #         f"\n매출 금액: {sales_amount}\n"
-                #         f"\n수익 금액: {profit_amount}\n")
-            except ValueError:
-                st.error("매출 금액과 수익 금액은 숫자로 입력해주세요.")
-        else:
-            st.warning("매출액은 필수 입니다.")
+        except ValueError:
+            st.error("매출 금액과 비용 금액은 숫자로 입력해주세요.")
 
-data_key_json = {"Date" : "날짜", "Team" : "팀", "Sales Person" : "매출 생성자", "Sales Amount" : "매출 금액", "Profit Amount" : "수익 금액"}
+
+data_key_json = {"Date" : "날짜", "Team" : "팀", "Sales Person" : "매출 생성자", "Sales Amount" : "매출", "Profit Amount" : "수익", "Cost Amount" : "비용"}
 
 with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
     # 날짜 선택
@@ -368,7 +362,7 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
                 if column == "날짜":
                     new_value = st.date_input(f"{column} 수정", value=current_value)
                 elif column == "팀":
-                    new_value = st.selectbox(f"{column} 수정", options=["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"], index=["게임", "굿즈", "두드림", "미디어", "Shift", "전자책", "축제"].index(current_value))
+                    new_value = st.selectbox(f"{column} 수정", options=["게임", "굿즈", "두드림", "HEBA", "Shift", "전자책", "축제"], index=["게임", "굿즈", "두드림", "HEBA", "Shift", "전자책", "축제"].index(current_value))
                 elif column == "매출 생성자":
                     team = selected_data["Team"]
                     if team == "게임":
@@ -377,10 +371,10 @@ with st.sidebar.expander("데이터 수정 / 삭제", expanded=False):
                         options = ["없음", "김선목", "김채영"]
                     elif team == "두드림":
                         options = ["없음", "민경환", "송시원", "임정희"]
-                    elif team == "미디어":
-                        options = ["없음", "권아인", "김주원", "심민석"]
+                    elif team == "HEBA":
+                        options = ["없음"]
                     elif team == "Shift":
-                        options = ["없음", "김문기", "박은채", "서정욱", "조성훈"]
+                        options = ["없음", "김문기", "박은채", "서정욱"]
                     elif team == "전자책":
                         options = ["없음", "박해민", "이송하"]
                     else:  # 축제
@@ -681,7 +675,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 ## ipyvizzu and ipyvizzu-story
 # 팀별 전체 수익 계산
-team_total_profit = filtered_data.groupby('Team')['Profit Amount'].sum().reset_index()
+team_total_profit = filtered_data[filtered_data['Team'] != 'HEBA'].groupby('Team')['Profit Amount'].sum().reset_index()
 
 # 팀별 수익의 30% 계산
 team_profit_30_percent = team_total_profit.copy()
@@ -694,13 +688,16 @@ team_profit_70_percent['Profit Amount'] = team_profit_70_percent['Profit Amount'
 # 수익의 30%의 전체 합계 계산
 total_30_percent_profit = team_profit_30_percent['Profit Amount'].sum()
 
+# HEBA 팀의 수익 계산
+heba_profit = filtered_data[filtered_data['Team'] == 'HEBA']['Profit Amount'].sum()
+
 # 전체 수익과 30% 수익, 나머지 70% 수익을 나타내는 데이터프레임 생성
 result_df = pd.DataFrame({
-    'Team': team_total_profit['Team'],
-    '팀별 수익': team_total_profit['Profit Amount'],
-    '수익의 30%': team_profit_30_percent['Profit Amount'],
-    '수익의 70%': team_profit_70_percent['Profit Amount'],
-    'HEBA' : total_30_percent_profit
+   'Team': team_total_profit['Team'],
+   '팀별 수익': team_total_profit['Profit Amount'],
+   '수익의 30%': team_profit_30_percent['Profit Amount'],
+   '수익의 70%': team_profit_70_percent['Profit Amount'],
+   'HEBA' : heba_profit
 })
 
 # 데이터 추가
@@ -710,83 +707,82 @@ vizzu_data.add_df(result_df)
 story = Story(data=vizzu_data)
 
 slide1 = Slide(
-    Step(
-        Config({
-            "channels": {
-                "y": {"set": ["팀별 수익"]},
-                "x": {"set": ["Team"]},
-                "label": {"set": ["팀별 수익"]},
-            },
-        }
-),
-        Style(
-        {
-            "legend": {"width" : 100}
-        }
-    )
-    )
+   Step(
+       Config({
+           "channels": {
+               "y": {"set": ["팀별 수익"]},
+               "x": {"set": ["Team"]},
+               "label": {"set": ["팀별 수익"]},
+           },
+       }),
+       Style(
+           {
+               "legend": {"width" : 100}
+           }
+       )
+   )
 )
 story.add_slide(slide1)
 
 slide2 = Slide(
-    Step(
-        Config(
-        {
-            "channels": {
-                "y": {"set": ["수익의 70%"]},
-                "x": {"set": ["Team"]},
-                "color": {"set": ["Team"]},
-                "label": {"set": ["수익의 70%"]}
-            },
-        }
-    )
-    )
+   Step(
+       Config(
+           {
+               "channels": {
+                   "y": {"set": ["수익의 70%"]},
+                   "x": {"set": ["Team"]},
+                   "color": {"set": ["Team"]},
+                   "label": {"set": ["수익의 70%"]}
+               },
+           }
+       )
+   )
 )
 story.add_slide(slide2)
 
 slide3 = Slide(
-    Step(
-        Config(
-        {
-            "channels": {
-                "y": {"set": ["수익의 30%"]},
-                "x": {"set": ["Team"]},
-                "color": {"set": ["Team"]},
-                "label": {"set": ["수익의 30%"]}
-            },
-        }
-    )
-    )
+   Step(
+       Config(
+           {
+               "channels": {
+                   "y": {"set": ["수익의 30%"]},
+                   "x": {"set": ["Team"]},
+                   "color": {"set": ["Team"]},
+                   "label": {"set": ["수익의 30%"]}
+               },
+           }
+       )
+   )
 )
 story.add_slide(slide3)
 
 slide4 = Slide(
-    Step(
-        Config(
-            {
-                "color" : "Team", 
-                "y":["Team"],
-                "channels" : {"x" :{"set": None}}}
-        )
-    )
+   Step(
+       Config(
+           {
+               "color" : "Team", 
+               "y":["Team"],
+               "channels" : {"x" :{"set": None}}
+           }
+       )
+   )
 )
 story.add_slide(slide4)
 
 slide5 = Slide(
-    Step(
-        Config(
-            {
-                "channels": {
-                    "y": {"set": ["HEBA"]},
-                    "x": {"set": None},
-                    "label": {"set": ["HEBA"]},
-                },      
-            }
-        )
-    )
+   Step(
+       Config(
+           {
+               "channels": {
+                   "y": {"set": ["HEBA"]},
+                   "x": {"set": None},
+                   "label": {"set": ["HEBA"]},
+               },      
+           }
+       )
+   )
 )
 story.add_slide(slide5)
-
 
 
 # you can set the width and height (CSS style)
